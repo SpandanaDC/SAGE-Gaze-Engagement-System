@@ -1,4 +1,4 @@
-# 👁️ SAGE: Saccade-Aware Gaze Engagement System
+<h1 align="center"> SAGE: Saccade-Aware Gaze Engagement System</h1>
 
 <div align="center">
 
@@ -14,7 +14,7 @@
 
 ---
 
-## 🚀 Executive Summary
+##  Executive Summary
 
 Commercial assistive eye-tracking and AAC (Augmentative and Alternative Communication) hardware solutions are cost-prohibitive for widespread clinical and home-care adoption. **SAGE** bridges this gap by transforming standard RGB webcams into high-precision, low-latency gaze trackers running on local edge hardware (Raspberry Pi). 
 
@@ -22,7 +22,7 @@ Beyond accessibility, SAGE introduces an autonomous **clinical telemetry bridge*
 
 ---
 
-## 🛠️ Core System Architecture
+## Core System Architecture
 
 SAGE is built on a modular, multi-threaded **Edge-to-Station Architecture**:
 graph TD
@@ -39,7 +39,7 @@ graph TD
     ML --> AAC["AAC Grid & Async TTS Engine"]
 ---
 
-## ✨ Key Features
+## Key Features
 
 * **Non-Invasive Computer Vision Pipeline:** Extracts 478 3D facial landmarks via Google MediaPipe at 30 FPS using standard webcams, eliminating the need for expensive infrared hardware.
 * **Supervised Machine Learning Model Selection:** Dynamically trains and evaluates multiple regression models (**Ridge Regression, Random Forest, MLP, and HistGradientBoosting**) during a 66-point calibration routine to select the lowest-error mapping function.
@@ -49,7 +49,7 @@ graph TD
 
 ---
 
-## 🧰 Technology Stack
+## Technology Stack
 
 | Component | Technology Used | Purpose |
 | :--- | :--- | :--- |
@@ -62,7 +62,7 @@ graph TD
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
 eye_controlled_mouse/
