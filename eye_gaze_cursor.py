@@ -70,7 +70,6 @@ SCREEN_W, SCREEN_H = pyautogui.size()
 
 CLAHE = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
 
-
 # ============================================
 # THREADED CAMERA
 # ============================================
@@ -124,7 +123,6 @@ class ThreadedCamera:
         if self.cap:
             self.cap.release()
 
-
 def ensure_model():
     if os.path.exists(MODEL_PATH):
         return
@@ -136,7 +134,6 @@ def ensure_model():
         print("Could not auto-download model:", e)
         print(f"Please manually download it from:\n{MODEL_URL}\nand place it as '{MODEL_PATH}' in this folder.")
         raise SystemExit(1)
-
 
 ensure_model()
 
@@ -153,14 +150,11 @@ landmarker = vision.FaceLandmarker.create_from_options(options)
 camera = ThreadedCamera(CAMERA_RESOLUTIONS)
 start_time = time.time()
 
-
 def now_ts():
     return time.time() - start_time
 
-
 def get_timestamp_ms():
     return int(now_ts() * 1000)
-
 
 def get_landmarks(frame):
     small = cv2.resize(frame, None, fx=DETECTION_SCALE, fy=DETECTION_SCALE) if DETECTION_SCALE != 1.0 else frame
@@ -175,14 +169,12 @@ def get_landmarks(frame):
         return None
     return result.face_landmarks[0]
 
-
 def _mouth_ratio(landmarks, w, h):
     top, bottom = landmarks[gl.MOUTH_VERT[0]], landmarks[gl.MOUTH_VERT[1]]
     left, right = landmarks[gl.MOUTH_CORNERS[0]], landmarks[gl.MOUTH_CORNERS[1]]
     vert = math.hypot((top.x - bottom.x) * w, (top.y - bottom.y) * h)
     horiz = math.hypot((left.x - right.x) * w, (left.y - right.y) * h)
     return vert / horiz if horiz > 1e-6 else 0.0
-
 
 # ============================================
 # CALIBRATION GRID
@@ -199,18 +191,15 @@ def _generate_grid_points():
             is_val = (row_i in VALIDATION_ROWCOLS) and (col_i in VALIDATION_ROWCOLS)
             points.append((row_i, col_i, float(xs[col_i]), float(gy), is_val))
 
-    # Item 11: dedicated near-boundary anchors, closer to the true edge than
-    # the main grid's margin. Train-only (not validation).
     m = CORNER_EDGE_MARGIN
     extra = [
-        (m, m), (1 - m, m), (m, 1 - m), (1 - m, 1 - m),   # corners
-        (0.5, m), (0.5, 1 - m), (m, 0.5), (1 - m, 0.5),   # edge midpoints
+        (m, m), (1 - m, m), (m, 1 - m), (1 - m, 1 - m),
+        (0.5, m), (0.5, 1 - m), (m, 0.5), (1 - m, 0.5),
     ]
     for gx, gy in extra:
         points.append((-1, -1, gx, gy, False))
 
     return points
-
 
 def _sample_point(target_x, target_y, progress_text, extra_prompt="", csv_writer=None, is_val=False):
     vt = gl.VelocityTracker()
@@ -257,7 +246,6 @@ def _sample_point(target_x, target_y, progress_text, extra_prompt="", csv_writer
             break
 
     return samples
-
 
 def _collect_calibration_data():
     cv2.namedWindow("Calibration", cv2.WND_PROP_FULLSCREEN)
@@ -318,7 +306,6 @@ def _collect_calibration_data():
     return (np.array(train_X), np.array(train_y, dtype=np.float64),
             np.array(val_X), np.array(val_y, dtype=np.float64))
 
-
 def verify_calibration(gm):
     cv2.namedWindow("Calibration", cv2.WND_PROP_FULLSCREEN)
     cv2.setWindowProperty("Calibration", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
@@ -368,7 +355,6 @@ def verify_calibration(gm):
             cv2.destroyWindow("Calibration")
             return None
 
-
 def run_calibration():
     print("Starting calibration: 49 grid points + 9 head-shifted validation reps + 8 corner/edge anchors.")
     while True:
@@ -386,15 +372,11 @@ def run_calibration():
         else:
             print("Redoing calibration...")
 
-
 # ============================================
-# DIAGNOSTIC TEST SCREEN (items 9, 10, 15)
+# DIAGNOSTIC TEST SCREEN
 # ============================================
 
 def run_diagnostic_test(gm):
-    """Untouched test points — never seen during calibration — with a live
-    target-vs-raw-vs-filtered overlay and a final region-broken-down error
-    report. This is the honest, independent 'final test set' (item 15)."""
     cv2.namedWindow("Diagnostic", cv2.WND_PROP_FULLSCREEN)
     cv2.setWindowProperty("Diagnostic", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
@@ -478,7 +460,6 @@ def run_diagnostic_test(gm):
         print(f"  {r:12s}: {np.mean(vals):6.1f}px")
     print("Saved raw results to diagnostic_log_*.csv\n")
 
-
 # ============================================
 # HUD
 # ============================================
@@ -508,7 +489,6 @@ def draw_hud(frame, mode, fps, status_text, status_color, click_hold_ratio, mode
                 cv2.FONT_HERSHEY_SIMPLEX, 0.40, (255, 255, 255), 1, cv2.LINE_AA)
     return frame
 
-
 def run_countdown(seconds):
     for i in range(seconds, 0, -1):
         for _ in range(10):
@@ -527,7 +507,6 @@ def run_countdown(seconds):
             cv2.imshow("Eye Cursor - Project", frame)
             cv2.waitKey(1)
             time.sleep(0.03)
-
 
 # ============================================
 # MAIN
@@ -563,6 +542,10 @@ correction_flash_until = 0
 paused = False
 frame_times = deque(maxlen=30)
 
+# Fatigue Telemetry tracking variables (Debounce timers)
+low_ear_start_time = None
+FATIGUE_DURATION_THRESHOLD = 1.5
+
 cv2.namedWindow("Eye Cursor - Project", cv2.WINDOW_NORMAL)
 cv2.resizeWindow("Eye Cursor - Project", DEBUG_WINDOW_W, DEBUG_WINDOW_H)
 cv2.moveWindow("Eye Cursor - Project", max(SCREEN_W - DEBUG_WINDOW_W - 30, 0), 30)
@@ -592,6 +575,33 @@ while True:
             feat = gl.extract_features(landmarks, frame, w, h)
             live_confidence = feat.confidence
             mouth_ratio = _mouth_ratio(landmarks, w, h)
+
+            # ==================== AUTOMATED FATIGUE TELEMETRY ====================
+            current_time = time.time()
+            if feat.avg_ear < 0.19:
+                if low_ear_start_time is None:
+                    low_ear_start_time = current_time
+                elif current_time - low_ear_start_time >= FATIGUE_DURATION_THRESHOLD:
+                    fatigue_str = "HIGH FATIGUE (Persistent Low EAR)"
+                else:
+                    fatigue_str = "Normal (Low Fatigue)"
+            elif feat.avg_ear < 0.22:
+                if low_ear_start_time is None:
+                    low_ear_start_time = current_time
+                elif current_time - low_ear_start_time >= FATIGUE_DURATION_THRESHOLD:
+                    fatigue_str = "MODERATE FATIGUE (Eye Strain)"
+                else:
+                    fatigue_str = "Normal (Low Fatigue)"
+            else:
+                low_ear_start_time = None
+                fatigue_str = "Normal (Low Fatigue)"
+
+            try:
+                with open("fatigue_status.txt", "w") as f:
+                    f.write(fatigue_str)
+            except Exception:
+                pass
+            # ====================================================================
 
             is_closed = feat.avg_ear < BLINK_EAR_THRESHOLD
             is_mouth_open = mouth_ratio > MOUTH_OPEN_THRESHOLD
@@ -649,13 +659,12 @@ while True:
                     nx, ny = gaze_model.predict_norm(feat.vector)
                     mapped_x, mapped_y = nx * SCREEN_W, ny * SCREEN_H
 
-                    # --- runtime outlier rejection (items 20, 25) ---
                     effective_conf = feat.confidence
                     if raw_prev_pos is not None:
                         dt_raw = max(t - raw_prev_time, 1e-3)
                         v_raw = math.hypot(mapped_x - raw_prev_pos[0], mapped_y - raw_prev_pos[1]) / dt_raw
                         if v_raw > gl.RUNTIME_MAX_PLAUSIBLE_SPEED_PX and feat.confidence < 0.85:
-                            effective_conf = 0.0  # implausible jump -> Kalman predicts-only this frame
+                            effective_conf = 0.0
                     if effective_conf > 0.0:
                         raw_prev_pos, raw_prev_time = (mapped_x, mapped_y), t
 

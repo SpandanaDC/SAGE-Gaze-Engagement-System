@@ -87,7 +87,6 @@ FEATURE_NAMES = (
 )
 N_FEATURES = len(FEATURE_NAMES)  # 30
 
-
 # ============================================
 # GEOMETRY HELPERS
 # ============================================
@@ -95,10 +94,8 @@ N_FEATURES = len(FEATURE_NAMES)  # 30
 def _dist(a, b, w, h):
     return math.hypot((a.x - b.x) * w, (a.y - b.y) * h)
 
-
 def _pt(lm, w, h):
     return lm.x * w, lm.y * h
-
 
 def _local_eye_axes(landmarks, corners, w, h):
     """Eye-local coordinate frame: X = corner_a->corner_b (rotates with head
@@ -114,19 +111,16 @@ def _local_eye_axes(landmarks, corners, w, h):
     center = ((ax + bx) / 2, (ay + by) / 2)
     return center, (ux, uy), perp, eye_w
 
-
 def _project_local(point_px, py, center, axis_x, axis_y_perp, eye_w, eye_h):
     dx, dy = point_px - center[0], py - center[1]
     lx = (dx * axis_x[0] + dy * axis_x[1]) / eye_w
     ly = (dx * axis_y_perp[0] + dy * axis_y_perp[1]) / (eye_h if eye_h > 1e-6 else 1.0)
     return lx + 0.5, ly + 0.5
 
-
 def _lid_center(landmarks, indices, w, h):
     xs = [landmarks[i].x * w for i in indices]
     ys = [landmarks[i].y * h for i in indices]
     return sum(xs) / len(xs), sum(ys) / len(ys)
-
 
 def detect_pupil_pixel(gray_full, landmarks, corners, w, h, upscale=PUPIL_ROI_UPSCALE):
     """Crop the eye region from the ORIGINAL-resolution grayscale frame,
@@ -184,7 +178,6 @@ def detect_pupil_pixel(gray_full, landmarks, corners, w, h, upscale=PUPIL_ROI_UP
     py = y0 + cy / upscale
     return px, py, circularity
 
-
 def _head_pose(landmarks, w, h):
     image_points = np.array([
         _pt(landmarks[NOSE_TIP], w, h),
@@ -215,11 +208,9 @@ def _head_pose(landmarks, w, h):
     fx, fy, fz = tvec.flatten()
     return yaw, pitch, roll, fx, fy, fz
 
-
 def _ear_confidence(ear):
     span = max(EAR_FULLY_OPEN - BLINK_EAR_THRESHOLD, 1e-6)
     return float(np.clip((ear - BLINK_EAR_THRESHOLD) / span, 0.0, 1.0))
-
 
 def _eye_block(landmarks, gray_full, corners, upper_lid, lower_lid, iris_center_idx, ring, w, h):
     center, ax, ay_perp, eye_w = _local_eye_axes(landmarks, corners, w, h)
@@ -254,12 +245,10 @@ def _eye_block(landmarks, gray_full, corners, upper_lid, lower_lid, iris_center_
                 ring_disagree=ring_disagree, px_gx=px_gx, px_gy=px_gy,
                 px_quality=px_quality, conf=conf, interocular_denom=eye_w)
 
-
 FeatureResult = namedtuple("FeatureResult", [
     "vector", "fused_gx", "fused_gy", "confidence", "left_conf", "right_conf",
     "avg_ear", "eye_disagree", "yaw", "pitch", "roll",
 ])
-
 
 def extract_features(landmarks, frame_bgr, w, h):
     # Plain grayscale here — CLAHE now happens inside detect_pupil_pixel on
@@ -302,7 +291,6 @@ def extract_features(landmarks, frame_bgr, w, h):
     return FeatureResult(vector, fused_gx, fused_gy, confidence, L["conf"], R["conf"],
                           avg_ear, eye_disagree, yaw, pitch, roll)
 
-
 class VelocityTracker:
     def __init__(self):
         self.prev = None
@@ -317,7 +305,6 @@ class VelocityTracker:
         self.prev, self.prev_t = (x, y), t
         return v
 
-
 def saccade_factor(velocity):
     if velocity <= SACCADE_VELOCITY_THRESHOLD:
         return 1.0
@@ -325,7 +312,6 @@ def saccade_factor(velocity):
         return 0.0
     span = SACCADE_VELOCITY_MAX - SACCADE_VELOCITY_THRESHOLD
     return 1.0 - (velocity - SACCADE_VELOCITY_THRESHOLD) / span
-
 
 # ============================================
 # KALMAN FILTER — dt-aware, confidence-gated
@@ -373,7 +359,6 @@ class GazeKalman:
         est = self.kf.correct(meas)
         return float(est[0, 0]), float(est[1, 0])
 
-
 # ============================================
 # REGION LABELING (for error breakdown)
 # ============================================
@@ -401,7 +386,6 @@ def region_label(x_norm, y_norm):
         return "center"
     return "mid"
 
-
 # ============================================
 # MODEL
 # ============================================
@@ -410,7 +394,6 @@ def px_to_degrees(px_error, screen_w):
     px_per_cm = screen_w / APPROX_SCREEN_WIDTH_CM
     cm_error = px_error / px_per_cm
     return math.degrees(math.atan2(cm_error, APPROX_VIEWING_DISTANCE_CM))
-
 
 class GazeModel:
     """Predicts NORMALIZED [0,1] screen coordinates (item 33) — resolution
@@ -435,7 +418,6 @@ class GazeModel:
         Xs = self.scaler.transform(self.X_train)
         self.model.fit(Xs, self.y_train)
 
-
 def _eval_region_breakdown(pred_norm, y_norm, screen_w, screen_h):
     err_px = np.linalg.norm((pred_norm - y_norm) * [screen_w, screen_h], axis=1)
     regions = [region_label(x, y) for x, y in y_norm]
@@ -443,7 +425,6 @@ def _eval_region_breakdown(pred_norm, y_norm, screen_w, screen_h):
     for r, e in zip(regions, err_px):
         by_region.setdefault(r, []).append(e)
     return err_px, by_region
-
 
 def train_and_select_model(X_train, y_train_px, X_val, y_val_px, screen_w, screen_h, seeds=(0, 1)):
     y_train = y_train_px / [screen_w, screen_h]
@@ -500,13 +481,11 @@ def train_and_select_model(X_train, y_train_px, X_val, y_val_px, screen_w, scree
 
     return GazeModel(scaler, best_name, best_model, X_train, y_train, X_val, y_val)
 
-
 # ============================================
 # PERSISTENCE
 # ============================================
 
 CALIBRATION_FILE = "calibration_model.pkl"
-
 
 def load_calibration():
     if not os.path.exists(CALIBRATION_FILE):
@@ -525,13 +504,11 @@ def load_calibration():
         print(f"Could not load existing calibration ({e}); will recalibrate.")
         return None
 
-
 def save_calibration(gm):
     joblib.dump({
         "scaler": gm.scaler, "model_name": gm.model_name, "model": gm.model,
         "X_train": gm.X_train, "y_train": gm.y_train, "X_val": gm.X_val, "y_val": gm.y_val,
     }, CALIBRATION_FILE)
-
 
 # ============================================
 # CSV LOGGING (item 30) — consumed offline by offline_eval.py
@@ -539,14 +516,12 @@ def save_calibration(gm):
 
 CSV_HEADER = list(FEATURE_NAMES) + ["target_x_px", "target_y_px", "is_val", "confidence", "timestamp"]
 
-
 def open_calibration_log():
     fname = f"calibration_log_{int(time.time())}.csv"
     f = open(fname, "w", newline="")
     writer = csv.writer(f)
     writer.writerow(CSV_HEADER)
     return f, writer, fname
-
 
 def log_calibration_sample(writer, feature_vector, target_x_px, target_y_px, is_val, confidence, t):
     writer.writerow(list(feature_vector) + [target_x_px, target_y_px, int(is_val), confidence, t])

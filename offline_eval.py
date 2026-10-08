@@ -19,7 +19,6 @@ import pyautogui
 
 import gaze_lib as gl
 
-
 def load_csv(path):
     with open(path, newline="") as f:
         reader = csv.DictReader(f)
@@ -38,7 +37,6 @@ def load_csv(path):
     is_val = np.array(is_val, dtype=bool)
     assert X.shape[1] == n_feat, f"CSV has {X.shape[1]} feature columns, expected {n_feat} — stale log format?"
     return X, y, is_val
-
 
 def main():
     if len(sys.argv) < 2:
@@ -60,7 +58,6 @@ def main():
     X_val, y_val = X[is_val], y[is_val]
 
     gl.train_and_select_model(X_train, y_train, X_val, y_val, screen_w, screen_h)
-
 
 if __name__ == "__main__":
     main()
